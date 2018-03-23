@@ -9,7 +9,7 @@ namespace Vlc.DotNet.Core.Interops
     public sealed partial class VlcManager : VlcInteropsManager
     {
         private VlcInstance myVlcInstance;
-        private static readonly Dictionary<DirectoryInfo, VlcManager> MyAllInstance = new Dictionary<DirectoryInfo, VlcManager>();
+        private static List<VlcManager> _instances = new List<VlcManager>();
 
         public string VlcVersion => Utf8InteropStringConverter.Utf8InteropToString(GetInteropDelegate<GetVersion>().Invoke());
 
@@ -34,13 +34,9 @@ namespace Vlc.DotNet.Core.Interops
             if (myVlcInstance != null)
                 myVlcInstance.Dispose();
 
-            if (MyAllInstance.ContainsValue(this))
+            if (_instances.Contains(this))
             {
-                foreach (var kv in new Dictionary<DirectoryInfo, VlcManager>(MyAllInstance))
-                {
-                    if(kv.Value == this)
-                        MyAllInstance.Remove(kv.Key);
-                }
+                _instances.Remove(this);
             }
 
             if (this.dialogCallbacksPointer != IntPtr.Zero)
@@ -53,9 +49,9 @@ namespace Vlc.DotNet.Core.Interops
 
         public static VlcManager GetInstance(DirectoryInfo dynamicLinkLibrariesPath)
         {
-            if (!MyAllInstance.ContainsKey(dynamicLinkLibrariesPath))
-                MyAllInstance[dynamicLinkLibrariesPath] = new VlcManager(dynamicLinkLibrariesPath);
-            return MyAllInstance[dynamicLinkLibrariesPath];
+            VlcManager instance = new VlcManager(dynamicLinkLibrariesPath);
+            _instances.Add(instance);
+            return instance;
         }
 
         private void EnsureVlcInstance()
